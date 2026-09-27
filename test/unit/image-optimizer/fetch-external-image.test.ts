@@ -233,4 +233,23 @@ describe('fetchExternalImage', () => {
       expect(result.buffer.length).toBe(maximumResponseBody)
     })
   })
+
+  describe('upstream fetch error handling', () => {
+    it('should throw ImageError 502 when upstream fetch fails with DNS error or network rejection', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed'))
+
+      const error = await fetchExternalImage(
+        'http://does-not-exist.example.invalid/image.jpg',
+        true,
+        50_000_000
+      ).catch((e) => e)
+
+      expect(error).toBeInstanceOf(ImageError)
+      expect((error as ImageError).statusCode).toBe(502)
+      expect((error as ImageError).message).toBe(
+        '"url" parameter is valid but upstream request failed'
+      )
+    })
+  })
 })
+
