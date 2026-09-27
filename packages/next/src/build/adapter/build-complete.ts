@@ -1163,8 +1163,14 @@ export async function handleBuildComplete({
               )
               return prerenderManifest.routes[localePathname]
             })
+          const routePrerenderInfo =
+            prerenderManifest.routes[staticMetadataPrerenderPathname]
+          const isStaticWithoutRevalidate =
+            isStaticMetadataRoute &&
+            isPrerenderedMetadataRoute &&
+            typeof routePrerenderInfo?.initialRevalidateSeconds !== 'number'
 
-          if (isStaticMetadataRoute && isPrerenderedMetadataRoute) {
+          if (isStaticWithoutRevalidate) {
             continue
           }
           const pageFile = path.join(appDistDir, `${page}.js`)
@@ -1462,7 +1468,10 @@ export async function handleBuildComplete({
 
         // Check if this is a static metadata route (e.g., /favicon.ico, /icon.png, /opengraph-image.png)
         // These should be output as static files, not prerenders.
-        if (isStaticMetadataFile(route)) {
+        if (
+          isStaticMetadataFile(route) &&
+          typeof prerenderInfo?.initialRevalidateSeconds !== 'number'
+        ) {
           // For static metadata from app router, check if the .body file exists
           const staticMetadataFilePath = path.join(
             appDistDir,
