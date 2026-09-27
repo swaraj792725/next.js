@@ -438,7 +438,11 @@ const nextDev = async (
 
       let maxOldSpaceSize: string | number | undefined = getMaxOldSpaceSize()
       if (!maxOldSpaceSize && !process.env.NEXT_DISABLE_MEM_OVERRIDE) {
-        const totalMem = os.totalmem()
+        const constrainedMem =
+          typeof process.constrainedMemory === 'function'
+            ? process.constrainedMemory()
+            : 0
+        const totalMem = constrainedMem > 0 ? constrainedMem : os.totalmem()
         const totalMemInMB = Math.floor(totalMem / 1024 / 1024)
         maxOldSpaceSize = Math.floor(totalMemInMB * 0.5).toString()
 
