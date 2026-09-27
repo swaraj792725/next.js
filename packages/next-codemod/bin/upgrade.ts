@@ -3,6 +3,7 @@ import prompts from 'prompts'
 import fs from 'fs'
 import {
   satisfies as satisfiesVersionRange,
+  intersects as intersectsVersionRange,
   compare as compareVersions,
   major,
   minor,
@@ -386,18 +387,29 @@ export async function runUpgrade(
           : JSON.parse(eslintConfigNextPeerDepsJSON)
       const eslintRange = eslintConfigNextPeerDeps?.eslint
       if (eslintRange) {
+        const currentEslintSpec = allDependencies['eslint']
         // TODO: Target ESLint 10 once eslint-config-next's plugins, especially
         // eslint-plugin-react, support its API removals (e.g. context.getFilename).
         const cappedRange = eslintRange
           .split('||')
           .map((range) => `${range.trim()} <10`)
           .join(' || ')
-        const targetEslintVersion = await loadHighestNPMVersionMatching(
-          `eslint@${cappedRange}`
-        )
-        versionMapping['eslint'] = {
-          version: targetEslintVersion,
-          required: false,
+
+        const isSatisfied =
+          currentEslintSpec &&
+          (satisfiesVersionRange(currentEslintSpec, cappedRange, {
+            includePrerelease: true,
+          }) ||
+            intersectsVersionRange(currentEslintSpec, cappedRange))
+
+        if (!isSatisfied) {
+          const targetEslintVersion = await loadHighestNPMVersionMatching(
+            `eslint@${cappedRange}`
+          )
+          versionMapping['eslint'] = {
+            version: targetEslintVersion,
+            required: false,
+          }
         }
       }
     } catch (e) {
