@@ -113,3 +113,32 @@ export function io(expression: string, type: SyncIOApiType) {
       workUnitStore satisfies never
   }
 }
+
+const NEXT_UNWRAPPED = Symbol.for('__next_unwrapped__')
+
+/**
+ * Extracts the unpatched original function if the target function has already been patched
+ * by Next.js node-environment-extensions, avoiding wrapper chaining across realms.
+ */
+export function getOriginalFunction<T extends Function>(fn: T): T {
+  return (fn as any)?.[NEXT_UNWRAPPED] ?? fn
+}
+
+/**
+ * Tags a wrapper function with a reference to the unpatched original function.
+ */
+export function markUnwrappedFunction<T extends Function>(
+  wrapper: T,
+  original: Function
+): T {
+  try {
+    Object.defineProperty(wrapper, NEXT_UNWRAPPED, {
+      value: original,
+      writable: false,
+      enumerable: false,
+      configurable: true,
+    })
+  } catch {}
+  return wrapper
+}
+

@@ -7,7 +7,7 @@
  * The extensions here never error nor alter the underlying return values and thus should be transparent to callers.
  */
 
-import { io } from './io-utils'
+import { io, getOriginalFunction, markUnwrappedFunction } from './io-utils'
 
 let webCrypto: typeof crypto
 if (process.env.NEXT_RUNTIME === 'edge') {
@@ -24,11 +24,11 @@ if (process.env.NEXT_RUNTIME === 'edge') {
 
 const getRandomValuesExpression = '`crypto.getRandomValues()`'
 try {
-  const _getRandomValues = webCrypto.getRandomValues
-  webCrypto.getRandomValues = function getRandomValues() {
+  const _getRandomValues = getOriginalFunction(webCrypto.getRandomValues)
+  webCrypto.getRandomValues = markUnwrappedFunction(function getRandomValues() {
     io(getRandomValuesExpression, 'crypto')
     return _getRandomValues.apply(webCrypto, arguments as any)
-  }
+  }, _getRandomValues)
 } catch {
   console.error(
     `Failed to install ${getRandomValuesExpression} extension. When using \`cacheComponents\` calling this function will not correctly trigger dynamic behavior.`
@@ -37,11 +37,11 @@ try {
 
 const randomUUIDExpression = '`crypto.randomUUID()`'
 try {
-  const _randomUUID = webCrypto.randomUUID
-  webCrypto.randomUUID = function randomUUID() {
+  const _randomUUID = getOriginalFunction(webCrypto.randomUUID)
+  webCrypto.randomUUID = markUnwrappedFunction(function randomUUID() {
     io(randomUUIDExpression, 'crypto')
     return _randomUUID.apply(webCrypto, arguments as any)
-  } as typeof _randomUUID
+  }, _randomUUID) as typeof _randomUUID
 } catch {
   console.error(
     `Failed to install ${getRandomValuesExpression} extension. When using \`cacheComponents\` calling this function will not correctly trigger dynamic behavior.`

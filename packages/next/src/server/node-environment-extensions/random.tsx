@@ -6,19 +6,20 @@
  * The extensions here never error nor alter the random generation itself and thus should be transparent to callers.
  */
 
-import { io } from './io-utils'
+import { io, getOriginalFunction, markUnwrappedFunction } from './io-utils'
 
 const expression = '`Math.random()`'
 try {
-  const _random = Math.random
-  Math.random = function random() {
+  const _random = getOriginalFunction(Math.random)
+  const fn = function random() {
     io(expression, 'random')
     return _random.apply(null, arguments as any)
 
     // We bind here to alter the `toString` printing to match `Math.random`'s native `toString`.
     // eslint-disable-next-line no-extra-bind
   }.bind(null)
-  Object.defineProperty(Math.random, 'name', { value: 'random' })
+  Object.defineProperty(fn, 'name', { value: 'random' })
+  Math.random = markUnwrappedFunction(fn, _random)
 } catch {
   console.error(
     `Failed to install ${expression} extension. When using \`cacheComponents\` calling this function will not correctly trigger dynamic behavior.`
