@@ -359,6 +359,16 @@ export function isResSent(res: ServerResponse) {
 export function normalizeRepeatedSlashes(url: string) {
   const urlParts = url.split('?')
   const urlNoQuery = urlParts[0]
+  const schemeMatch = urlNoQuery.match(/^([a-zA-Z][a-zA-Z\d+\-.]*:\/\/)/)
+  if (schemeMatch) {
+    const scheme = schemeMatch[1]
+    const path = urlNoQuery.slice(scheme.length)
+    return (
+      scheme +
+      path.replace(/\\/g, '/').replace(/\/\/+/g, '/') +
+      (urlParts[1] ? `?${urlParts.slice(1).join('?')}` : '')
+    )
+  }
 
   return (
     urlNoQuery
