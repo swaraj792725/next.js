@@ -98,6 +98,20 @@ export function getPkgManager(baseDir: string): PackageManager {
   }
 }
 
+export function getExecCommand(pkgManager: PackageManager): string {
+  switch (pkgManager) {
+    case 'pnpm':
+      return 'pnpm dlx'
+    case 'yarn':
+      return 'yarn dlx'
+    case 'bun':
+      return 'bunx'
+    case 'npm':
+    default:
+      return 'npx'
+  }
+}
+
 export function uninstallPackage(
   packageToUninstall: string,
   pkgManager?: PackageManager
