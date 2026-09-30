@@ -163,4 +163,53 @@ describe('createPatchedFetcher', () => {
       }),
     ])
   })
+
+  it('does not mutate caller init options object across repeated fetches or fail on frozen init', async () => {
+    const mockFetch: jest.MockedFunction<typeof fetch> = jest.fn()
+    mockFetch.mockResolvedValue(new Response('ok', { status: 200 }))
+
+    const workAsyncStorage = new AsyncLocalStorage<WorkStore>()
+    const workUnitAsyncStorage = new AsyncLocalStorage<WorkUnitStore>()
+    const patchedFetch = createPatchedFetcher(mockFetch, {
+      workAsyncStorage,
+      workUnitAsyncStorage,
+    })
+
+    const workStore: Partial<WorkStore> = {
+      page: '/',
+      route: '/',
+    }
+
+    const options: RequestInit & {
+      next?: { revalidate?: number; tags?: string[] }
+    } = Object.freeze({
+      cache: 'no-store',
+      next: Object.freeze({
+        revalidate: 60,
+        tags: ['test-tag'],
+      }),
+    })
+
+    await workAsyncStorage.run(workStore as WorkStore, async () => {
+      // First fetch with the options object
+      await patchedFetch('https://example.com/api1', options)
+
+      // Caller's options object must remain intact and not mutated
+      expect(options.next).toEqual({
+        revalidate: 60,
+        tags: ['test-tag'],
+      })
+      expect(options.cache).toBe('no-store')
+
+      // Second fetch reusing the same options object must succeed without losing next configuration
+      await patchedFetch('https://example.com/api2', options)
+
+      expect(options.next).toEqual({
+        revalidate: 60,
+        tags: ['test-tag'],
+      })
+      expect(options.cache).toBe('no-store')
+    })
+  })
 })
+

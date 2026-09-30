@@ -432,6 +432,8 @@ export function createPatchedFetcher(
           const { next, ...overrides } = init
           input = new Request(input as Request, overrides)
           init = next ? { next } : undefined
+        } else if (init && typeof init === 'object') {
+          init = { ...init }
         }
 
         const getRequestMeta = (field: string) => {
