@@ -127,6 +127,7 @@ import {
   JSON_CONTENT_TYPE_HEADER,
   MATCHED_PATH_HEADER,
   NEXT_RESUME_HEADER,
+  TEXT_PLAIN_CONTENT_TYPE_HEADER,
 } from '../lib/constants'
 import { normalizeLocalePath } from '../shared/lib/i18n/normalize-locale-path'
 import { matchNextDataPathname } from './lib/match-next-data-pathname'
@@ -3342,6 +3343,33 @@ export default abstract class Server<
                 check()
               </script>`,
               HTML_CONTENT_TYPE_HEADER
+            ),
+          }
+        }
+
+        if (res.statusCode === 400) {
+          return {
+            body: RenderResult.fromStatic(
+              'Bad Request',
+              TEXT_PLAIN_CONTENT_TYPE_HEADER
+            ),
+          }
+        }
+
+        if (res.statusCode === 405) {
+          return {
+            body: RenderResult.fromStatic(
+              'Method Not Allowed',
+              TEXT_PLAIN_CONTENT_TYPE_HEADER
+            ),
+          }
+        }
+
+        if (res.statusCode && res.statusCode < 500) {
+          return {
+            body: RenderResult.fromStatic(
+              'Client Error',
+              TEXT_PLAIN_CONTENT_TYPE_HEADER
             ),
           }
         }

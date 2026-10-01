@@ -894,13 +894,13 @@ export async function initialize(opts: {
     try {
       await handleRequest(0)
     } catch (err) {
+      let invokeStatus = 500
       try {
         let invokePath = '/500'
-        let invokeStatus = '500'
 
         if (err instanceof DecodeError) {
           invokePath = '/400'
-          invokeStatus = '400'
+          invokeStatus = 400
         } else if (isModuleBuildError(err)) {
           // Webpack compilation failures may bubble out of invokeRender. Log
           // the readable diagnostic without printing the wrapper stack again.
@@ -908,15 +908,15 @@ export async function initialize(opts: {
         } else {
           console.error(err)
         }
-        res.statusCode = Number(invokeStatus)
+        res.statusCode = invokeStatus
         return await invokeRender(parseUrlUtil(invokePath), invokePath, 0, {
           invokeStatus: res.statusCode,
         })
       } catch (err2) {
         console.error(err2)
       }
-      res.statusCode = 500
-      res.end('Internal Server Error')
+      res.statusCode = invokeStatus
+      res.end(invokeStatus === 400 ? 'Bad Request' : 'Internal Server Error')
     }
   }
 

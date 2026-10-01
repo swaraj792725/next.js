@@ -115,4 +115,14 @@ describe('dynamicParams: false request modes', () => {
     expect(await browser.hasElementByCssSelector('#home')).toBe(true)
     expect(await browser.hasElementByCssSelector('#product')).toBe(false)
   })
+
+  it('returns 400 Bad Request for malformed percent-encoded dynamic segment', async () => {
+    const res1 = await next.fetch('/products/%E0%A4')
+    expect(res1.status).toBe(400)
+    expect(await res1.text()).toBe('Bad Request')
+
+    const res2 = await next.fetch('/products/100%')
+    expect(res2.status).toBe(400)
+    expect(await res2.text()).toBe('Bad Request')
+  })
 })
