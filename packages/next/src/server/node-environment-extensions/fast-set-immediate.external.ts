@@ -28,10 +28,23 @@ const FAST_SET_IMMEDIATE_ORIGINALS_KEY = Symbol.for(
 )
 
 // Re-evaluations in dev should always use the same base/original functions.
-const originals = ((globalThis as any)[FAST_SET_IMMEDIATE_ORIGINALS_KEY] ??
-  ((globalThis as any)[FAST_SET_IMMEDIATE_ORIGINALS_KEY] = {
-    setImmediate: globalThis.setImmediate,
-    clearImmediate: globalThis.clearImmediate,
+// Note: In Node.js environments (e.g. multi-realm test runners like Jest),
+// require('node:timers') is shared across realms whereas globalThis is per-realm.
+// Storing originals on the shared nodeTimers module prevents chaining across realms.
+let sharedTimersTarget: any = globalThis
+if (process.env.NEXT_RUNTIME !== 'edge') {
+  try {
+    sharedTimersTarget = require('node:timers')
+  } catch {}
+}
+
+const originals = ((sharedTimersTarget as any)[
+  FAST_SET_IMMEDIATE_ORIGINALS_KEY
+] ??
+  ((sharedTimersTarget as any)[FAST_SET_IMMEDIATE_ORIGINALS_KEY] = {
+    setImmediate: sharedTimersTarget.setImmediate ?? globalThis.setImmediate,
+    clearImmediate:
+      sharedTimersTarget.clearImmediate ?? globalThis.clearImmediate,
     nextTick: process.nextTick,
   })) as FastSetImmediateOriginals
 

@@ -14,6 +14,11 @@ if (process.env.NEXT_RUNTIME === 'edge') {
 } else {
   const nodeCrypto = require('node:crypto') as typeof import('node:crypto')
 
+  const NODE_CRYPTO_ORIGINALS_KEY = Symbol.for('next.node-crypto.originals')
+  const originals: Record<string, any> =
+    (nodeCrypto as any)[NODE_CRYPTO_ORIGINALS_KEY] ??
+    ((nodeCrypto as any)[NODE_CRYPTO_ORIGINALS_KEY] = {})
+
   // require('node:crypto').getRandomValues is an alias for
   // crypto.getRandomValues which is extended in web-crypto.tsx
 
@@ -21,7 +26,7 @@ if (process.env.NEXT_RUNTIME === 'edge') {
 
   const randomUUIDExpression = "`require('node:crypto').randomUUID()`"
   try {
-    const _randomUUID = nodeCrypto.randomUUID
+    const _randomUUID = (originals.randomUUID ??= nodeCrypto.randomUUID)
     nodeCrypto.randomUUID = function randomUUID() {
       io(randomUUIDExpression, 'random')
       return _randomUUID.apply(this, arguments as any)
@@ -34,7 +39,7 @@ if (process.env.NEXT_RUNTIME === 'edge') {
 
   const randomBytesExpression = "`require('node:crypto').randomBytes(size)`"
   try {
-    const _randomBytes = nodeCrypto.randomBytes
+    const _randomBytes = (originals.randomBytes ??= nodeCrypto.randomBytes)
     // @ts-expect-error -- TODO: tell TS the overloads are preserved
     nodeCrypto.randomBytes = function randomBytes() {
       if (typeof arguments[1] !== 'function') {
@@ -52,7 +57,8 @@ if (process.env.NEXT_RUNTIME === 'edge') {
   const randomFillSyncExpression =
     "`require('node:crypto').randomFillSync(...)`"
   try {
-    const _randomFillSync = nodeCrypto.randomFillSync
+    const _randomFillSync = (originals.randomFillSync ??=
+      nodeCrypto.randomFillSync)
     // @ts-expect-error -- TODO: tell TS the overloads are preserved
     nodeCrypto.randomFillSync = function randomFillSync() {
       io(randomFillSyncExpression, 'random')
@@ -66,7 +72,7 @@ if (process.env.NEXT_RUNTIME === 'edge') {
 
   const randomIntExpression = "`require('node:crypto').randomInt(min, max)`"
   try {
-    const _randomInt = nodeCrypto.randomInt
+    const _randomInt = (originals.randomInt ??= nodeCrypto.randomInt)
     // @ts-expect-error -- TODO: tell TS the overloads are preserved
     nodeCrypto.randomInt = function randomInt() {
       if (typeof arguments[2] !== 'function') {
@@ -77,14 +83,15 @@ if (process.env.NEXT_RUNTIME === 'edge') {
     }
   } catch {
     console.error(
-      `Failed to install ${randomBytesExpression} extension. When using \`cacheComponents\` calling this function without a callback argument will not correctly trigger dynamic behavior.`
+      `Failed to install ${randomIntExpression} extension. When using \`cacheComponents\` calling this function without a callback argument will not correctly trigger dynamic behavior.`
     )
   }
 
   const generatePrimeSyncExpression =
     "`require('node:crypto').generatePrimeSync(...)`"
   try {
-    const _generatePrimeSync = nodeCrypto.generatePrimeSync
+    const _generatePrimeSync = (originals.generatePrimeSync ??=
+      nodeCrypto.generatePrimeSync)
     // @ts-expect-error -- TODO: tell TS the overloads are preserved
     nodeCrypto.generatePrimeSync = function generatePrimeSync() {
       io(generatePrimeSyncExpression, 'random')
@@ -99,7 +106,8 @@ if (process.env.NEXT_RUNTIME === 'edge') {
   const generateKeyPairSyncExpression =
     "`require('node:crypto').generateKeyPairSync(...)`"
   try {
-    const _generateKeyPairSync = nodeCrypto.generateKeyPairSync
+    const _generateKeyPairSync = (originals.generateKeyPairSync ??=
+      nodeCrypto.generateKeyPairSync)
     // @ts-expect-error -- TODO: tell TS the overloads are preserved
     nodeCrypto.generateKeyPairSync = function generateKeyPairSync() {
       io(generateKeyPairSyncExpression, 'random')
@@ -114,7 +122,8 @@ if (process.env.NEXT_RUNTIME === 'edge') {
   const generateKeySyncExpression =
     "`require('node:crypto').generateKeySync(...)`"
   try {
-    const _generateKeySync = nodeCrypto.generateKeySync
+    const _generateKeySync = (originals.generateKeySync ??=
+      nodeCrypto.generateKeySync)
     nodeCrypto.generateKeySync = function generateKeySync() {
       io(generateKeySyncExpression, 'random')
       return _generateKeySync.apply(this, arguments as any)

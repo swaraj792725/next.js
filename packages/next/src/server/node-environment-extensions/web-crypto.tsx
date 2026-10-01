@@ -22,9 +22,15 @@ if (process.env.NEXT_RUNTIME === 'edge') {
   }
 }
 
+const WEB_CRYPTO_ORIGINALS_KEY = Symbol.for('next.web-crypto.originals')
+const originals: Record<string, any> =
+  (webCrypto as any)[WEB_CRYPTO_ORIGINALS_KEY] ??
+  ((webCrypto as any)[WEB_CRYPTO_ORIGINALS_KEY] = {})
+
 const getRandomValuesExpression = '`crypto.getRandomValues()`'
 try {
-  const _getRandomValues = webCrypto.getRandomValues
+  const _getRandomValues = (originals.getRandomValues ??=
+    webCrypto.getRandomValues)
   webCrypto.getRandomValues = function getRandomValues() {
     io(getRandomValuesExpression, 'crypto')
     return _getRandomValues.apply(webCrypto, arguments as any)
@@ -37,13 +43,13 @@ try {
 
 const randomUUIDExpression = '`crypto.randomUUID()`'
 try {
-  const _randomUUID = webCrypto.randomUUID
+  const _randomUUID = (originals.randomUUID ??= webCrypto.randomUUID)
   webCrypto.randomUUID = function randomUUID() {
     io(randomUUIDExpression, 'crypto')
     return _randomUUID.apply(webCrypto, arguments as any)
   } as typeof _randomUUID
 } catch {
   console.error(
-    `Failed to install ${getRandomValuesExpression} extension. When using \`cacheComponents\` calling this function will not correctly trigger dynamic behavior.`
+    `Failed to install ${randomUUIDExpression} extension. When using \`cacheComponents\` calling this function will not correctly trigger dynamic behavior.`
   )
 }
