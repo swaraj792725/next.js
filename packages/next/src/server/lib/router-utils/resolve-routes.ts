@@ -171,13 +171,17 @@ export function getResolveRoutes(
         : 'http'
 
     // When there are hostname and port we build an absolute URL
+    const urlWithSlash =
+      !req.url || req.url.startsWith('/') ? req.url || '' : `/${req.url}`
     const initUrl = (config.experimental as any).trustHostHeader
-      ? `https://${req.headers.host || 'localhost'}${req.url}`
-      : opts.port
-        ? `${protocol}://${formatHostname(opts.hostname || 'localhost')}:${
-            opts.port
-          }${req.url}`
-        : req.url || ''
+      ? `https://${req.headers.host || 'localhost'}${urlWithSlash}`
+      : req.url?.startsWith('http://') || req.url?.startsWith('https://')
+        ? req.url
+        : opts.port
+          ? `${protocol}://${formatHostname(opts.hostname || 'localhost')}:${
+              opts.port
+            }${urlWithSlash}`
+          : req.url || ''
 
     addRequestMeta(req, 'initURL', initUrl)
     addRequestMeta(req, 'initQuery', { ...parsedUrl.query })

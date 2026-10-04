@@ -22,7 +22,27 @@ export function parseUrl(url: string): ParsedUrl {
     return parseRelativeUrl(url)
   }
 
-  const parsedURL = new URL(url)
+  if (url === '*') {
+    return {
+      auth: null,
+      hash: '',
+      hostname: null,
+      href: '*',
+      pathname: '*',
+      port: null,
+      protocol: null,
+      query: {},
+      search: '',
+      slashes: null,
+    }
+  }
+
+  let parsedURL: URL
+  try {
+    parsedURL = new URL(url)
+  } catch {
+    return parseRelativeUrl(url.startsWith('/') ? url : `/${url}`)
+  }
   const username = parsedURL.username
   const password = parsedURL.password
   const auth = username
