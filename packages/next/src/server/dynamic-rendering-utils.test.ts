@@ -1,5 +1,9 @@
 import { createPromiseWithResolvers } from '../shared/lib/promise-with-resolvers'
-import { trackPromiseUsed } from './dynamic-rendering-utils'
+import {
+  trackPromiseUsed,
+  makeClientHookDynamicHangingPromise,
+  ClientHookDynamicError,
+} from './dynamic-rendering-utils'
 
 describe('trackPromiseUsed', () => {
   it('`then` is tracked and forwards the value', async () => {
@@ -110,5 +114,70 @@ describe('trackPromiseUsed', () => {
     underlying.resolve(result)
 
     await expect(derived).resolves.toBe(result)
+  })
+})
+
+describe('makeClientHookDynamicHangingPromise', () => {
+  it('does not emit an unhandledRejection when signal is already aborted', async () => {
+    const unhandledRejections: any[] = []
+    const handleUnhandledRejection = (reason: any) => {
+      unhandledRejections.push(reason)
+    }
+    process.on('unhandledRejection', handleUnhandledRejection)
+
+    try {
+      const controller = new AbortController()
+      controller.abort()
+
+      const error = new ClientHookDynamicError('/', 'usePathname()')
+      const promise = makeClientHookDynamicHangingPromise(
+        controller.signal,
+        error
+      )
+
+      // Allow microtasks and ticks to flush without awaiting promise
+      await new Promise((resolve) =>
+        queueMicrotask(() => process.nextTick(resolve))
+      )
+
+      expect(unhandledRejections).toHaveLength(0)
+
+      // When awaited or explicitly handled, the promise still rejects with the original error
+      await expect(promise).rejects.toThrow(error)
+    } finally {
+      process.off('unhandledRejection', handleUnhandledRejection)
+    }
+  })
+
+  it('does not emit an unhandledRejection when signal aborts later', async () => {
+    const unhandledRejections: any[] = []
+    const handleUnhandledRejection = (reason: any) => {
+      unhandledRejections.push(reason)
+    }
+    process.on('unhandledRejection', handleUnhandledRejection)
+
+    try {
+      const controller = new AbortController()
+
+      const error = new ClientHookDynamicError('/', 'usePathname()')
+      const promise = makeClientHookDynamicHangingPromise(
+        controller.signal,
+        error
+      )
+
+      controller.abort()
+
+      // Allow microtasks and ticks to flush without awaiting promise
+      await new Promise((resolve) =>
+        queueMicrotask(() => process.nextTick(resolve))
+      )
+
+      expect(unhandledRejections).toHaveLength(0)
+
+      // When awaited or explicitly handled, the promise still rejects with the original error
+      await expect(promise).rejects.toThrow(error)
+    } finally {
+      process.off('unhandledRejection', handleUnhandledRejection)
+    }
   })
 })
